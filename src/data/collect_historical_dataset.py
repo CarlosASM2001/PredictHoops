@@ -1,4 +1,5 @@
 import pandas as pd
+from pandas.errors import EmptyDataError
 from pathlib import Path
 import fetch_games as games
 import game_meta as gm
@@ -26,15 +27,20 @@ def main():
 
                 raw_path = pbp.RAW_DIR / f"{game_id}.csv"
 
-                if raw_path.exists():
+            if raw_path.exists() and raw_path.stat().st_size > 0:
+                try:
                     pbp_df = pd.read_csv(raw_path)
-                else:
+                except EmptyDataError:
+                    print(f"[WARN] Empty CSV for {game_id}, refetching...")
                     pbp_df = pbp.fetch_play_by_play(game_id)
                     pbp_df.to_csv(raw_path, index=False)
-                    time.sleep(3)
+            else:
+                pbp_df = pbp.fetch_play_by_play(game_id)
+                pbp_df.to_csv(raw_path, index=False)
+                time.sleep(3)
 
-                state_rows = clean_pbp.clean_pbp_state(pbp_df, game_meta)
-                all_state_rows.extend(state_rows)
+            state_rows = clean_pbp.clean_pbp_state(pbp_df, game_meta)
+            all_state_rows.extend(state_rows)
 
     final_df = pd.DataFrame(all_state_rows)
 
