@@ -10,12 +10,15 @@ def build_game_meta(game_rows, season, season_type):
     for _, row in game_rows.iterrows():
         matchup = row["MATCHUP"]
         team = row["TEAM_ABBREVIATION"]
-
+        
         if "vs." in matchup:
             home_team = team
+            away_team = matchup.split("vs.")[1].strip()
         elif "@" in matchup:
+            home_team = matchup.split("@")[1].strip()
             away_team = team
-        
+
+
         return{
             "game_id": game_id,
             "season": season,

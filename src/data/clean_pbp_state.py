@@ -9,11 +9,40 @@ def _clean_score(value, current_score):
     return int(float(value))
 
 
-def _clean_text(value):
-    if pd.isna(value):
-        return ""
-    return str(value)
 
+def get_event_type(event):
+    action_type = event.get("actionType")
+
+    if pd.notna(action_type) and str(action_type).strip():
+        return str(action_type)
+
+    description = get_event_description(event).lower()
+
+    if "steal" in description:
+        return "Steal"
+    if "block" in description:
+        return "Block"
+    return None
+
+
+def get_event_description(event):
+
+    description = event.get("description")
+
+    if pd.notna(description) and str(description).strip():
+        return description
+
+    action_type = event.get("actionType")
+    sub_type = event.get("subType")
+    player = event.get("playerName")
+
+    parts = [
+        str(player) if pd.notna(player) else None,
+        str(action_type) if pd.notna(action_type) else None,
+        str(sub_type) if pd.notna(sub_type) else None,
+    ]
+
+    return " ".join([p for p in parts if p])
 
 def clean_pbp_state(pbp_df, game_meta):
     rows = []
@@ -23,6 +52,8 @@ def clean_pbp_state(pbp_df, game_meta):
     for _, event in pbp_df.iterrows():
         current_home_score = _clean_score(event.get("scoreHome"), current_home_score)
         current_away_score = _clean_score(event.get("scoreAway"), current_away_score)
+
+        
 
         row = {
             "game_id": game_meta["game_id"],
@@ -40,8 +71,8 @@ def clean_pbp_state(pbp_df, game_meta):
             "home_score": current_home_score,
             "away_score": current_away_score,
             "score_diff_home": current_home_score - current_away_score,
-            "event_type": event.get("actionType"),
-            "description": _clean_text(event.get("description")),
+            "event_type": get_event_type(event),
+            "description": get_event_description(event),
             "winner_team": game_meta["winner_team"],
             "home_win": int(game_meta["winner_team"] == game_meta["home_team"]),
         }
